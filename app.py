@@ -8,7 +8,8 @@ from database import (
     get_journal_stats, get_high_citation_alerts, get_next_run_time,
     get_last_run_time, set_high_citation_threshold, get_high_citation_threshold,
     set_schedule_hours, get_schedule_hours, save_to_db,
-    set_next_run_time, set_last_run_time
+    set_next_run_time, set_last_run_time,
+    toggle_star, save_memo, get_starred_articles
 )
 
 st.set_page_config(page_title="i-SENS 학술 자료 수집 대시보드", page_icon="🧬", layout="wide")
@@ -365,20 +366,26 @@ if page == "📊  데이터 수집":
     if bulk_btn and kws:
         prog = st.progress(0)
         total_saved = 0
+        all_failed = []
         threshold   = get_high_citation_threshold()
         for i, kw in enumerate(kws):
             try:
                 data = get_dashboard_data(kw, threshold)
                 total_saved += save_to_db(kw, data["papers"])
+                for source, reason in data.get("failed_sources", []):
+                    all_failed.append(f"{kw} / {source}: {reason}")
             except Exception:
                 pass
             prog.progress((i + 1) / len(kws))
-        # 일괄 수집 완료 시에도 last/next run time 기록 → 사이드바 카운트다운 시작
         now      = datetime.now()
         next_run = now + timedelta(hours=get_schedule_hours())
         set_last_run_time(now.strftime("%Y-%m-%d %H:%M:%S"))
         set_next_run_time(next_run.strftime("%Y-%m-%d %H:%M:%S"))
         st.success(f"✅ 전체 수집 완료 · 총 {total_saved}건 저장")
+        if all_failed:
+            with st.expander(f"⚠️ 수집 실패 소스 {len(all_failed)}건 — 클릭해서 확인"):
+                for msg in all_failed:
+                    st.warning(msg)
         st.rerun()
 
     df = get_all_data()
@@ -471,7 +478,12 @@ elif page == "📚  라이브러리":
     st.subheader("📚 누적 라이브러리")
     df = get_all_data()
 
-    if not df.empty:
+    # 라이브러리 내 탭 — 전체 목록 / 즐겨찾기
+    lib_tab1, lib_tab2 = st.tabs(["📋 전체 목록", "⭐ 즐겨찾기"])
+
+    # ── 전체 목록 탭 ──────────────────────────────────────────
+    with lib_tab1:
+      if not df.empty:
         title_search = st.text_input(
             "🔍 논문 제목 검색",
             placeholder="예: glucose, biosensor, CGM ...",
@@ -544,37 +556,109 @@ elif page == "📚  라이브러리":
                 )
 
         if not filtered_df.empty:
-            display_df = filtered_df[
-                ['title', 'journal', 'citation_count', 'source', 'collected_date', 'link']
-            ].copy()
-            display_df['citation_count'] = display_df['citation_count'].apply(
-                lambda x: int(x) if pd.notna(x) else 0
-            )
-            display_df['collected_date'] = display_df['collected_date'].str[:10]
+            # 즐겨찾기 버튼을 위해 id 포함해서 표시
+            for _, row in filtered_df.head(100).iterrows():
+                article_id  = int(row['id'])
+                is_starred  = int(row.get('is_starred', 0))
+                star_icon   = "⭐" if is_starred else "☆"
+                title       = str(row.get('title', '제목 없음'))
+                link        = row.get('link', '') or ''
+                journal     = row.get('journal', '') or '저널 정보 없음'
+                source      = row.get('source', '')
+                citation    = int(row['citation_count']) if pd.notna(row['citation_count']) else 0
+                memo        = str(row.get('memo', '') or '')
 
-            row_h  = 38
-            min_h  = 200
-            max_h  = 560
-            calc_h = min(max(min_h, len(display_df) * row_h + 50), max_h)
+                with st.container():
+                    c1, c2 = st.columns([11, 1])
+                    with c1:
+                        st.markdown(f"""
+                        <div class="paper-card">
+                          <div style="flex:1;min-width:0;">
+                            <a href="{link}" target="_blank">{title}</a>
+                            <div class="paper-meta">{journal} · {source}</div>
+                            {f'<div style="font-size:0.78rem;color:#78BE20;margin-top:4px;">📝 {memo}</div>' if memo else ''}
+                          </div>
+                          <span class="badge-citation">{citation}회</span>
+                        </div>""", unsafe_allow_html=True)
+                    with c2:
+                        if st.button(star_icon, key=f"star_{article_id}", help="즐겨찾기 토글"):
+                            toggle_star(article_id)
+                            st.rerun()
 
-            st.dataframe(
-                display_df,
-                column_config={
-                    "title":          st.column_config.TextColumn("논문 제목", width="large"),
-                    "journal":        st.column_config.TextColumn("저널",     width="medium"),
-                    "citation_count": st.column_config.NumberColumn("인용수", format="%d 회", width="small"),
-                    "source":         st.column_config.TextColumn("출처",     width="small"),
-                    "collected_date": st.column_config.TextColumn("수집일",   width="small"),
-                    "link":           st.column_config.LinkColumn("링크", display_text="🔗 열기", width="small"),
-                },
-                hide_index=True,
-                width='stretch',
-                height=calc_h,
-            )
+                # 메모 입력 (expander)
+                with st.expander("📝 메모 보기/편집", expanded=False):
+                    new_memo = st.text_area(
+                        "메모",
+                        value=memo,
+                        key=f"memo_{article_id}",
+                        height=80,
+                        label_visibility="collapsed",
+                        placeholder="이 논문에 대한 메모를 입력하세요..."
+                    )
+                    if st.button("💾 저장", key=f"save_memo_{article_id}"):
+                        save_memo(article_id, new_memo)
+                        st.toast("메모 저장 완료 ✅")
+                        st.rerun()
+
+            if len(filtered_df) > 100:
+                st.caption(f"상위 100건만 표시됩니다. 전체 {len(filtered_df):,}건은 CSV 다운로드를 이용하세요.")
         else:
             st.warning("검색 조건에 맞는 논문이 없습니다.")
-    else:
+      else:
         st.info("아직 수집된 데이터가 없습니다. 데이터 수집 탭에서 먼저 수집해 보세요!")
+
+    # ── 즐겨찾기 탭 ───────────────────────────────────────────
+    with lib_tab2:
+        starred_df = get_starred_articles()
+        if not starred_df.empty:
+            st.caption(f"총 {len(starred_df)}개의 즐겨찾기 논문")
+            # CSV 다운로드
+            st.download_button(
+                "📥 즐겨찾기 CSV 다운로드",
+                starred_df.to_csv(index=False).encode('utf-8-sig'),
+                file_name=f"starred_papers_{datetime.now().strftime('%Y%m%d')}.csv",
+            )
+            for _, row in starred_df.iterrows():
+                article_id = int(row['id'])
+                title      = str(row.get('title', '제목 없음'))
+                link       = row.get('link', '') or ''
+                journal    = row.get('journal', '') or '저널 정보 없음'
+                source     = row.get('source', '')
+                citation   = int(row['citation_count']) if pd.notna(row['citation_count']) else 0
+                memo       = str(row.get('memo', '') or '')
+
+                with st.container():
+                    c1, c2 = st.columns([11, 1])
+                    with c1:
+                        st.markdown(f"""
+                        <div class="paper-card">
+                          <div style="flex:1;min-width:0;">
+                            <a href="{link}" target="_blank">{title}</a>
+                            <div class="paper-meta">{journal} · {source}</div>
+                            {f'<div style="font-size:0.78rem;color:#78BE20;margin-top:4px;">📝 {memo}</div>' if memo else ''}
+                          </div>
+                          <span class="badge-citation">{citation}회</span>
+                        </div>""", unsafe_allow_html=True)
+                    with c2:
+                        if st.button("⭐", key=f"unstar_{article_id}", help="즐겨찾기 해제"):
+                            toggle_star(article_id)
+                            st.rerun()
+
+                with st.expander("📝 메모 보기/편집", expanded=False):
+                    new_memo = st.text_area(
+                        "메모",
+                        value=memo,
+                        key=f"smemo_{article_id}",
+                        height=80,
+                        label_visibility="collapsed",
+                        placeholder="이 논문에 대한 메모를 입력하세요..."
+                    )
+                    if st.button("💾 저장", key=f"ssave_memo_{article_id}"):
+                        save_memo(article_id, new_memo)
+                        st.toast("메모 저장 완료 ✅")
+                        st.rerun()
+        else:
+            st.info("⭐ 아직 즐겨찾기한 논문이 없어요. 전체 목록에서 ☆ 버튼을 눌러 추가하세요!")
 
 
 # ==================== 페이지: 신규 수집 (7일간) ====================
@@ -632,8 +716,6 @@ elif page == "⚙️  설정":
 
     with col_a:
         st.markdown("#### 🔑 키워드 관리")
-
-        # ── 단일 등록 ──
         new_kw = st.text_input("새 키워드 추가", placeholder="예: electrochemical biosensor")
         if st.button("➕ 등록", use_container_width=True):
             if new_kw.strip():
@@ -644,37 +726,7 @@ elif page == "⚙️  설정":
                     st.warning("이미 등록된 키워드입니다.")
             else:
                 st.error("키워드를 입력해주세요.")
-
-        # ── 일괄 등록 ──
-        st.markdown("**📋 일괄 등록** — 줄바꿈 또는 쉼표로 구분해서 입력")
-        bulk_input = st.text_area(
-            "키워드 목록",
-            placeholder="glucose monitoring\ncontinuous glucose monitor\nbiosensor\nHbA1c, CGM, wearable sensor",
-            height=120,
-            label_visibility="collapsed"
-        )
-        if st.button("➕ 일괄 등록", use_container_width=True):
-            if bulk_input.strip():
-                # 줄바꿈과 쉼표 모두 구분자로 처리
-                raw = bulk_input.replace(",", "\n")
-                candidates = [k.strip() for k in raw.splitlines() if k.strip()]
-                added, skipped = [], []
-                for kw in candidates:
-                    if add_target_keyword(kw):
-                        added.append(kw)
-                    else:
-                        skipped.append(kw)
-                if added:
-                    st.success(f"✅ {len(added)}개 등록 완료: {', '.join(added)}")
-                if skipped:
-                    st.warning(f"⚠️ {len(skipped)}개 중복 건너뜀: {', '.join(skipped)}")
-                st.rerun()
-            else:
-                st.error("키워드를 입력해주세요.")
-
         st.divider()
-
-        # ── 등록된 키워드 목록 ──
         kws_list = get_keywords_list()
         if kws_list:
             for k in kws_list:
