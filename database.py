@@ -47,9 +47,20 @@ def init_db():
                 language       TEXT DEFAULT 'unknown',
                 country        TEXT DEFAULT 'unknown',
                 is_preprint    INTEGER DEFAULT 0,
-                journal_quality TEXT DEFAULT 'unknown'
+                journal_quality TEXT DEFAULT 'unknown',
+                is_starred     INTEGER DEFAULT 0,
+                memo           TEXT DEFAULT ''
             )
         """)
+        # 기존 DB에 컬럼이 없을 경우 자동 마이그레이션
+        for col_sql in [
+            "ALTER TABLE articles ADD COLUMN is_starred INTEGER DEFAULT 0",
+            "ALTER TABLE articles ADD COLUMN memo TEXT DEFAULT ''"
+        ]:
+            try:
+                c.execute(col_sql)
+            except Exception:
+                pass
         
         c.execute("CREATE TABLE IF NOT EXISTS keywords (id INTEGER PRIMARY KEY AUTOINCREMENT, keyword TEXT UNIQUE)")
         c.execute("CREATE TABLE IF NOT EXISTS article_keywords (article_id INTEGER, keyword_id INTEGER, UNIQUE(article_id, keyword_id))")
@@ -227,3 +238,29 @@ def get_high_citation_alerts(limit=30):
             FROM high_citation_alerts 
             ORDER BY id DESC LIMIT ?
         """, conn, params=(limit,))
+
+# ==================== 즐겨찾기 / 메모 ====================
+
+def toggle_star(article_id):
+    """즐겨찾기 토글 — 0이면 1로, 1이면 0으로"""
+    with get_conn() as conn:
+        conn.cursor().execute(
+            "UPDATE articles SET is_starred = CASE WHEN is_starred=1 THEN 0 ELSE 1 END WHERE id=?",
+            (article_id,)
+        )
+
+def save_memo(article_id, memo_text):
+    """메모 저장"""
+    with get_conn() as conn:
+        conn.cursor().execute(
+            "UPDATE articles SET memo=? WHERE id=?",
+            (memo_text.strip(), article_id)
+        )
+
+def get_starred_articles():
+    """즐겨찾기된 논문 전체 조회"""
+    with get_conn() as conn:
+        return pd.read_sql_query(
+            "SELECT * FROM articles WHERE is_starred=1 ORDER BY citation_count DESC",
+            conn
+        )
