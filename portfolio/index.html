@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>i-SENS 학술 자료 수집 대시보드 | 포트폴리오</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome 6.5.2 (최신 + 안정화) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" 
+          integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" 
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --blue:  #171c8f;
+            --green: #78BE20;
+            --dark:  #0d1035;
+            --mid:   #232aa8;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #f5f6fb;
+            color: #1a1a2e;
+            overflow-x: hidden;
+        }
+
+        .fade-up {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        .hero {
+            background: var(--dark);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(120,190,32,.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(120,190,32,.06) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            right: -120px;
+            top: -120px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(35,42,168,.55) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-inner { position: relative; z-index: 1; }
+
+        .stat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 9999px;
+            padding: 6px 16px;
+            font-size: .82rem;
+            color: rgba(255,255,255,.8);
+        }
+        .stat-pill strong { color: #fff; }
+
+        .hero-title em {
+            font-style: normal;
+            color: var(--green);
+        }
+
+        .section { max-width: 1000px; margin: 0 auto; padding: 80px 32px; }
+        .label {
+            display: inline-block;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--blue);
+            background: rgba(23,28,143,.08);
+            padding: 4px 12px;
+            border-radius: 9999px;
+            margin-bottom: 14px;
+        }
+        h2.sh {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            line-height: 1.15;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 640px) { .ba-grid { grid-template-columns: 1fr; } }
+
+        .ba-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 32px;
+            border: 1.5px solid #eaecf8;
+        }
+        .ba-card.after { border-color: rgba(120,190,32,.35); }
+        .ba-tag {
+            display: inline-block;
+            font-size: .75rem;
+            font-weight: 700;
+            padding: 3px 12px;
+            border-radius: 9999px;
+            margin-bottom: 18px;
+        }
+        .ba-tag.before { background: #fee2e2; color: #b91c1c; }
+        .ba-tag.after  { background: var(--green); color: #fff; }
+
+        .ba-item { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; font-size: .92rem; color: #4b5563; }
+        .ba-item i { margin-top: 3px; flex-shrink: 0; }
+
+        .impact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        @media (max-width: 640px) { .impact-grid { grid-template-columns: 1fr 1fr; } }
+
+        .impact-card {
+            background: var(--dark);
+            border-radius: 20px;
+            padding: 28px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .impact-num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--green);
+            line-height: 1;
+        }
+        .impact-label { color: rgba(255,255,255,.65); font-size: .85rem; margin-top: 8px; }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 640px) { .features-grid { grid-template-columns: 1fr; } }
+
+        .feat-card {
+            background: #fff;
+            border: 1.5px solid #eaecf8;
+            border-radius: 20px;
+            padding: 28px;
+            cursor: pointer;
+            transition: border-color .25s, box-shadow .25s, transform .25s;
+        }
+        .feat-card:hover { border-color: rgba(23,28,143,.25); box-shadow: 0 12px 32px rgba(23,28,143,.10); transform: translateY(-4px); }
+
+        .feat-icon {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            margin-bottom: 18px;
+            flex-shrink: 0;
+        }
+        .feat-icon.blue  { background: var(--blue); color: #fff; }
+        .feat-icon.green { background: var(--green); color: #fff; }
+        .feat-icon.dark  { background: var(--dark); color: #fff; }
+
+        .feat-title { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+        .feat-desc  { font-size: .88rem; color: #6b7280; line-height: 1.65; }
+
+        .feat-badge {
+            display: inline-block;
+            font-size: .72rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            margin: 4px 3px 0 0;
+            background: rgba(23,28,143,.08);
+            color: var(--blue);
+        }
+
+        .stack-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        @media (max-width: 640px) { .stack-grid { grid-template-columns: repeat(2, 1fr); } }
+
+        .stack-card {
+            background: #f8f9ff;
+            border: 1px solid #eaecf4;
+            border-radius: 16px;
+            padding: 24px 16px;
+            text-align: center;
+            transition: border-color .2s, transform .2s;
+        }
+        .stack-card:hover { border-color: rgba(23,28,143,.3); transform: translateY(-3px); }
+        .stack-icon { font-size: 2.2rem; margin-bottom: 10px; }
+        .stack-name { font-weight: 700; font-size: .92rem; color: var(--dark); }
+        .stack-sub  { font-size: .75rem; color: #9ca3af; margin-top: 4px; }
+
+        .arch-box {
+            background: var(--dark);
+            border-radius: 20px;
+            padding: 32px;
+            color: #fff;
+        }
+        .arch-row { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+        .arch-node {
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 12px;
+            padding: 10px 18px;
+            font-size: .82rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: rgba(255,255,255,.85);
+            white-space: nowrap;
+        }
+        .arch-node.highlight { background: rgba(120,190,32,.18); border-color: rgba(120,190,32,.4); color: #9fd44a; }
+        .arch-divider { border: none; border-top: 1px solid rgba(255,255,255,.08); margin: 20px 0; }
+
+        #modal {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+        }
+        #modal.open { opacity: 1; pointer-events: all; }
+        .modal-box {
+            transform: scale(.96) translateY(10px);
+            transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+        }
+        #modal.open .modal-box { transform: scale(1) translateY(0); }
+
+        .footer {
+            background: var(--dark);
+            color: rgba(255,255,255,.5);
+            text-align: center;
+            padding: 40px 32px;
+            font-size: .82rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="hero-inner section" style="padding-top:72px;padding-bottom:72px;">
+        <div class="flex items-center gap-3 mb-8 fade-up">
+            <div style="width:48px;height:48px;background:var(--green);border-radius:14px;
+                        display:flex;align-items:center;justify-content:center;
+                        color:#fff;font-weight:800;font-size:1.5rem;flex-shrink:0;">i</div>
+            <span style="color:rgba(255,255,255,.5);font-size:.85rem;letter-spacing:.05em;">i-SENS 교육지원 · SIDE PROJECT</span>
+        </div>
+
+        <h1 class="hero-title fade-up" style="font-family:'Space Grotesk',sans-serif;
+            font-size:clamp(2rem,5vw,3.6rem);color:#fff;line-height:1.15;
+            max-width:700px;margin-bottom:20px;">
+            i-SENS 학술 자료 수집<br> 대시보드<br>
+            <span style="font-size:1.1rem;opacity:0.9;">4개 학술 API 자동 수집 + 실시간 인사이트</span>
+        </h1>
+
+        <p class="fade-up" style="color:rgba(255,255,255,.65);font-size:1.05rem;max-width:520px;
+            line-height:1.75;margin-bottom:36px;">
+            Europe PMC, Semantic Scholar, OpenAlex, Crossref — 4개 학술 API를 스케줄러로 자동 수집하고, 
+            Streamlit 대시보드로 실시간 인사이트를 제공합니다.
+        </p>
+
+        <div class="flex flex-wrap gap-3 mb-10 fade-up">
+            <span class="stat-pill"><i class="fa-solid fa-database" style="color:var(--green)"></i><strong>SQLite</strong> 영속 저장</span>
+            <span class="stat-pill"><i class="fa-solid fa-clock" style="color:var(--green)"></i><strong>APScheduler</strong> 자동 수집</span>
+            <span class="stat-pill"><i class="fa-solid fa-filter" style="color:var(--green)"></i><strong>5종</strong> 고급 필터</span>
+            <span class="stat-pill"><i class="fa-solid fa-bell" style="color:var(--green)"></i>고인용 논문 <strong>자동 알림</strong></span>
+        </div>
+
+        <div class="flex flex-wrap gap-3 fade-up">
+            <a href="#" target="_blank"
+               style="display:inline-flex;align-items:center;gap:10px;
+                      background:#fff;color:var(--blue);font-weight:700;
+                      padding:12px 24px;border-radius:14px;text-decoration:none;">
+                <i class="fa-brands fa-github"></i> GitHub에서 보기
+            </a>
+            <a href="#features"
+               style="display:inline-flex;align-items:center;gap:10px;
+                      border:1.5px solid rgba(255,255,255,.25);color:#fff;font-weight:600;
+                      padding:12px 24px;border-radius:14px;text-decoration:none;">
+                주요 기능 보기 <i class="fa-solid fa-arrow-down" style="font-size:.8rem"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- IMPACT -->
+<div class="section" style="padding-bottom:0">
+    <div class="label fade-up">Impact</div>
+    <h2 class="sh fade-up">숫자로 보는 성과</h2>
+    <div class="impact-grid fade-up">
+        <div class="impact-card">
+            <div class="impact-num">4<span style="font-size:1.4rem">개</span></div>
+            <div class="impact-label">학술 API 동시 연동<br><span style="font-size:.75rem;opacity:0.6">Europe PMC · Semantic Scholar · OpenAlex · Crossref</span></div>
+        </div>
+        <div class="impact-card">
+            <div class="impact-num">0<span style="font-size:1.4rem">회</span></div>
+            <div class="impact-label">일일 수동 검색<br><span style="font-size:.75rem;opacity:0.6">스케줄러가 자동 수행</span></div>
+        </div>
+        <div class="impact-card">
+            <div class="impact-num">2649<span style="font-size:1.4rem">+</span></div>
+            <div class="impact-label">누적 수집 논문<br><span style="font-size:.75rem;opacity:0.6">실제 운영 기준</span></div>
+        </div>
+        <div class="impact-card">
+            <div class="impact-num">5<span style="font-size:1.4rem">종</span></div>
+            <div class="impact-label">고급 필터 지원<br><span style="font-size:.75rem;opacity:0.6">언어·국가·저널급·출판유형·인용수</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- BEFORE / AFTER -->
+<div class="section">
+    <div class="label fade-up">Problem → Solution</div>
+    <h2 class="sh fade-up">어떤 문제를 해결했나요?</h2>
+    <div class="ba-grid" style="margin-top:32px">
+        <div class="ba-card fade-up">
+            <span class="ba-tag before">Before</span>
+            <div class="ba-item"><i class="fa-solid fa-times" style="color:#ef4444"></i>매일 여러 사이트 수동 검색 — 누락 위험</div>
+            <div class="ba-item"><i class="fa-solid fa-times" style="color:#ef4444"></i>고인용 논문 놓침</div>
+            <div class="ba-item"><i class="fa-solid fa-times" style="color:#ef4444"></i>중복 수집 및 Excel 수동 관리</div>
+            <div class="ba-item"><i class="fa-solid fa-times" style="color:#ef4444"></i>최신 논문 여부 일일이 확인</div>
+        </div>
+        <div class="ba-card after fade-up">
+            <span class="ba-tag after">After</span>
+            <div class="ba-item"><i class="fa-solid fa-check" style="color:var(--green)"></i>4개 API 자동 병렬 수집</div>
+            <div class="ba-item"><i class="fa-solid fa-check" style="color:var(--green)"></i>고인용 논문 자동 감지 및 알림</div>
+            <div class="ba-item"><i class="fa-solid fa-check" style="color:var(--green)"></i>중복 제거 + SQLite 영속 저장</div>
+            <div class="ba-item"><i class="fa-solid fa-check" style="color:var(--green)"></i>최근 7일 신규 탭으로 즉시 확인</div>
+        </div>
+    </div>
+</div>
+
+<!-- FEATURES -->
+<div class="section" id="features" style="padding-top:40px">
+    <div class="label fade-up">Features</div>
+    <h2 class="sh fade-up">주요 기능</h2>
+    <p class="fade-up" style="color:#6b7280;margin-bottom:36px;font-size:.95rem;">카드를 클릭하면 상세 내용을 확인할 수 있습니다</p>
+
+    <div class="features-grid">
+        <!-- Feature Cards -->
+        <div class="feat-card fade-up" onclick="showModal(0)">
+            <div class="feat-icon blue"><i class="fa-solid fa-globe"></i></div>
+            <div class="feat-title">멀티 소스 수집 엔진</div>
+            <div class="feat-desc">4개 학술 API를 자동으로 호출하여 폭넓은 논문을 수집합니다.</div>
+            <div style="margin-top:14px">
+                <span class="feat-badge">Europe PMC</span>
+                <span class="feat-badge">Semantic Scholar</span>
+                <span class="feat-badge">OpenAlex</span>
+                <span class="feat-badge">Crossref</span>
+            </div>
+        </div>
+
+        <div class="feat-card fade-up" onclick="showModal(1)">
+            <div class="feat-icon dark"><i class="fa-solid fa-history"></i></div>
+            <div class="feat-title">APScheduler 자동 수집</div>
+            <div class="feat-desc">설정된 주기마다 자동으로 수집합니다. 실시간 카운트다운으로 다음 수집 시각을 확인할 수 있습니다.</div>
+            <div style="margin-top:14px">
+                <span class="feat-badge">24시간 주기</span>
+                <span class="feat-badge">실시간 카운트다운</span>
+            </div>
+        </div>
+
+        <div class="feat-card fade-up" onclick="showModal(2)">
+            <div class="feat-icon green"><i class="fa-solid fa-bell"></i></div>
+            <div class="feat-title">고인용 논문 자동 알림</div>
+            <div class="feat-desc">설정 임계치 이상 인용된 논문을 자동 감지하여 DB에 저장하고 알림을 제공합니다.</div>
+            <div style="margin-top:14px">
+                <span class="feat-badge">임계치 설정 가능</span>
+                <span class="feat-badge">50회 기본</span>
+            </div>
+        </div>
+
+        <div class="feat-card fade-up" onclick="showModal(3)">
+            <div class="feat-icon blue"><i class="fa-solid fa-filter"></i></div>
+            <div class="feat-title">5종 고급 필터 라이브러리</div>
+            <div class="feat-desc">언어, 국가, 저널급, 출판유형, 인용수로 세밀하게 필터링하고 CSV로 다운로드합니다.</div>
+            <div style="margin-top:14px">
+                <span class="feat-badge">언어·국가</span>
+                <span class="feat-badge">SCI·Preprint</span>
+                <span class="feat-badge">CSV 다운로드</span>
+            </div>
+        </div>
+
+        <div class="feat-card wide fade-up" onclick="showModal(4)">
+            <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap">
+                <div style="flex:1;min-width:200px">
+                    <div class="feat-icon green" style="margin-bottom:16px"><i class="fa-solid fa-calendar-alt"></i></div>
+                    <div class="feat-title">최근 7일 신규 수집 탭</div>
+                    <div class="feat-desc">수집일 기준 최근 7일 논문을 자동 필터링합니다. 7일이 지나면 자동으로 사라집니다.</div>
+                </div>
+                <div style="flex:1;min-width:220px">
+                    <div style="background:#0d1117;color:#79c0ff;font-family:'JetBrains Mono',monospace;font-size:.78rem;border-radius:12px;padding:16px 20px;line-height:1.7">
+                        <span style="color:#8b949e"># 7일 필터 핵심 로직</span><br>
+                        seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")<br>
+                        new_df = df[df['collected_date'] >= seven_days_ago]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ARCHITECTURE -->
+<div class="section" style="padding-top:0">
+    <div class="label fade-up">Architecture</div>
+    <h2 class="sh fade-up">시스템 구조</h2>
+    <div class="arch-box fade-up" style="margin-top:28px">
+        <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-bottom:16px">Data Flow</div>
+        
+        <div style="font-size:.72rem;color:rgba(255,255,255,.35);margin-bottom:8px">📡 수집 레이어</div>
+        <div class="arch-row">
+            <div class="arch-node">Europe PMC</div>
+            <div class="arch-node">Semantic Scholar</div>
+            <div class="arch-node">OpenAlex</div>
+            <div class="arch-node">Crossref</div>
+        </div>
+        <div class="arch-row"><div class="arch-arrow">↓ backend_scraper.py ↓</div></div>
+        <hr class="arch-divider">
+        <div style="font-size:.72rem;color:rgba(255,255,255,.35);margin-bottom:8px">⚙️ 처리 레이어</div>
+        <div class="arch-row">
+            <div class="arch-node highlight">scheduler.py</div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-node highlight">database.py</div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-node highlight">high_citation_alerts</div>
+        </div>
+        <hr class="arch-divider">
+        <div style="font-size:.72rem;color:rgba(255,255,255,.35);margin-bottom:8px">🖥️ UI 레이어 — app.py (Streamlit)</div>
+        <div class="arch-row">
+            <div class="arch-node">📊 데이터 수집</div>
+            <div class="arch-node">📚 라이브러리</div>
+            <div class="arch-node">🆕 신규 수집</div>
+            <div class="arch-node">⚙️ 설정</div>
+        </div>
+    </div>
+</div>
+
+<!-- TECH STACK -->
+<div class="stack-section">
+    <div class="section" style="padding-top:64px;padding-bottom:64px">
+        <div class="label fade-up">Tech Stack</div>
+        <h2 class="sh fade-up" style="margin-bottom:32px">기술 스택</h2>
+        <div class="stack-grid">
+            <div class="stack-card fade-up">
+                <div class="stack-icon"><i class="fa-brands fa-python" style="color:#3776AB"></i></div>
+                <div class="stack-name">Python 3</div>
+                <div class="stack-sub">Streamlit · urllib</div>
+            </div>
+            <div class="stack-card fade-up">
+                <div class="stack-icon"><i class="fa-solid fa-clock" style="color:var(--blue)"></i></div>
+                <div class="stack-name">APScheduler</div>
+                <div class="stack-sub">BlockingScheduler</div>
+            </div>
+            <div class="stack-card fade-up">
+                <div class="stack-icon"><i class="fa-solid fa-database" style="color:#4479A1"></i></div>
+                <div class="stack-name">SQLite</div>
+                <div class="stack-sub">영속 저장 · 중복 제거</div>
+            </div>
+            <div class="stack-card fade-up">
+                <div class="stack-icon"><i class="fa-solid fa-table-cells" style="color:#e97627"></i></div>
+                <div class="stack-name">Pandas</div>
+                <div class="stack-sub">데이터 조작 · CSV</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+    <div style="width:36px;height:36px;background:var(--green);border-radius:10px;
+                display:flex;align-items:center;justify-content:center;
+                color:#fff;font-weight:800;font-size:1.2rem;margin:0 auto 16px;">i</div>
+    <p><strong>i-SENS 학술 자료 수집 대시보드</strong></p>
+    <p style="margin-top:6px">© 2026 i-SENS 교육지원 · Sensing Ahead, Caring More</p>
+    <p style="margin-top:10px;font-size:.75rem;color:rgba(255,255,255,.3)">단일 HTML 파일 · 오프라인 지원</p>
+</div>
+
+<!-- MODAL -->
+<div id="modal" onclick="closeModal()" style="position:fixed;inset:0;background:rgba(13,16,53,.7);display:flex;align-items:center;justify-content:center;z-index:999;padding:24px;">
+    <div class="modal-box" onclick="event.stopPropagation()" style="background:#fff;border-radius:24px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 32px 64px rgba(0,0,0,.25);">
+        <div id="modal-body" style="padding:36px 36px 0"></div>
+        <div style="padding:20px 36px;border-top:1px solid #f0f0f5;display:flex;justify-content:flex-end">
+            <button onclick="closeModal()" style="padding:8px 22px;border-radius:10px;border:1.5px solid #e5e7eb;font-size:.88rem;font-weight:600;color:#6b7280;cursor:pointer;background:#fff">닫기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const io = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+            setTimeout(() => e.target.classList.add('visible'), i * 80);
+            io.unobserve(e.target);
+        }
+    });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
+
+setTimeout(() => {
+    document.querySelectorAll('.fade-up').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight) el.classList.add('visible');
+    });
+}, 50);
+
+const modals = [
+    {
+        icon: 'fa-globe', color: 'var(--blue)',
+        title: '멀티 소스 수집 엔진',
+        body: `<p style="color:#6b7280;line-height:1.75;margin-bottom:20px">4개의 학술 API를 안전하게 호출하여 의학·공학·전 분야 논문을 자동으로 수집합니다.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <div style="background:#f8f9ff;border-radius:14px;padding:16px"><div style="font-weight:700;margin-bottom:6px;font-size:.9rem">Europe PMC</div><div style="font-size:.8rem;color:#6b7280">의학·생명과학 중심</div></div>
+            <div style="background:#f8f9ff;border-radius:14px;padding:16px"><div style="font-weight:700;margin-bottom:6px;font-size:.9rem">Semantic Scholar</div><div style="font-size:.8rem;color:#6b7280">인용 정보 강점</div></div>
+            <div style="background:#f8f9ff;border-radius:14px;padding:16px"><div style="font-weight:700;margin-bottom:6px;font-size:.9rem">OpenAlex</div><div style="font-size:.8rem;color:#6b7280">포괄적 학술 데이터</div></div>
+            <div style="background:#f8f9ff;border-radius:14px;padding:16px"><div style="font-weight:700;margin-bottom:6px;font-size:.9rem">Crossref</div><div style="font-size:.8rem;color:#6b7280">DOI 기반 메타데이터</div></div>
+        </div>`
+    },
+    {
+        icon: 'fa-history', color: 'var(--dark)',
+        title: 'APScheduler 자동 수집',
+        body: `<p style="color:#6b7280;line-height:1.75;margin-bottom:20px">scheduler.py를 실행하면 설정된 시간 간격마다 자동으로 수집이 실행됩니다. 수동 수집해도 카운트다운이 동작합니다.</p>`
+    },
+    {
+        icon: 'fa-bell', color: 'var(--green)',
+        title: '고인용 논문 자동 알림',
+        body: `<p style="color:#6b7280;line-height:1.75;margin-bottom:20px">설정 임계치(기본 50회) 이상 인용된 논문을 자동 감지하여 DB에 저장하고 대시보드에 표시합니다.</p>
+        <div style="background:var(--dark);border-radius:14px;padding:18px 20px;font-size:.8rem;color:rgba(255,255,255,.75)">고인용 알림 테이블: keyword, title, citation_count, link, journal, detected_at</div>`
+    },
+    {
+        icon: 'fa-filter', color: 'var(--blue)',
+        title: '5종 고급 필터 라이브러리',
+        body: `<p style="color:#6b7280;line-height:1.75;margin-bottom:20px">언어, 국가, 저널급, 출판유형, 인용수 범위로 논문을 세밀하게 필터링하고 CSV로 다운로드합니다.</p>`
+    },
+    {
+        icon: 'fa-calendar-alt', color: 'var(--green)',
+        title: '최근 7일 신규 수집 탭',
+        body: `<p style="color:#6b7280;line-height:1.75;margin-bottom:20px">수집일 기준 최근 7일 논문을 자동 필터링합니다. 7일이 지나면 자동으로 사라집니다.</p>
+        <div style="background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:12px 16px;font-size:.82rem;color:#92400e">7일이 지나면 자동으로 사라지며 별도 삭제가 필요 없습니다.</div>`
+    }
+];
+
+function showModal(i) {
+    const m = modals[i];
+    document.getElementById('modal-body').innerHTML = `
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+            <div style="width:48px;height:48px;border-radius:14px;background:${m.color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem;flex-shrink:0">
+                <i class="fa-solid ${m.icon}"></i>
+            </div>
+            <h3 style="font-size:1.4rem;font-weight:700;color:var(--dark)">${m.title}</h3>
+        </div>
+        ${m.body}
+    `;
+    document.getElementById('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
