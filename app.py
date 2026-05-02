@@ -632,6 +632,8 @@ elif page == "⚙️  설정":
 
     with col_a:
         st.markdown("#### 🔑 키워드 관리")
+
+        # ── 단일 등록 ──
         new_kw = st.text_input("새 키워드 추가", placeholder="예: electrochemical biosensor")
         if st.button("➕ 등록", use_container_width=True):
             if new_kw.strip():
@@ -642,7 +644,37 @@ elif page == "⚙️  설정":
                     st.warning("이미 등록된 키워드입니다.")
             else:
                 st.error("키워드를 입력해주세요.")
+
+        # ── 일괄 등록 ──
+        st.markdown("**📋 일괄 등록** — 줄바꿈 또는 쉼표로 구분해서 입력")
+        bulk_input = st.text_area(
+            "키워드 목록",
+            placeholder="glucose monitoring\ncontinuous glucose monitor\nbiosensor\nHbA1c, CGM, wearable sensor",
+            height=120,
+            label_visibility="collapsed"
+        )
+        if st.button("➕ 일괄 등록", use_container_width=True):
+            if bulk_input.strip():
+                # 줄바꿈과 쉼표 모두 구분자로 처리
+                raw = bulk_input.replace(",", "\n")
+                candidates = [k.strip() for k in raw.splitlines() if k.strip()]
+                added, skipped = [], []
+                for kw in candidates:
+                    if add_target_keyword(kw):
+                        added.append(kw)
+                    else:
+                        skipped.append(kw)
+                if added:
+                    st.success(f"✅ {len(added)}개 등록 완료: {', '.join(added)}")
+                if skipped:
+                    st.warning(f"⚠️ {len(skipped)}개 중복 건너뜀: {', '.join(skipped)}")
+                st.rerun()
+            else:
+                st.error("키워드를 입력해주세요.")
+
         st.divider()
+
+        # ── 등록된 키워드 목록 ──
         kws_list = get_keywords_list()
         if kws_list:
             for k in kws_list:
